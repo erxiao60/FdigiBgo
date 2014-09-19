@@ -42,6 +42,7 @@ private:
   double AttPar[308][2];
 //  double AttHit[2];//ADC counts
   double TotalE[616];
+  TRandom *RanGaus[616];
 };
 
 #endif

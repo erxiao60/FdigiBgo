@@ -6,6 +6,7 @@
 
 #include "DmpEvtMCBgo.h"
 #include "DmpLog.h"
+#include "DmpBgoBase.h"
 
 ClassImp(DmpEvtMCBgo)
 
@@ -63,4 +64,23 @@ const double DmpEvtMCBgo::GetPosition(short entry,const std::string &direction){
         return -10000;
     }
 }
+//-------------------------------------------------------------------
+const short DmpEvtMCBgo::GetLayerID(short entry){
+    short layerID = DmpBgoBase::GetLayerID(fGlobalBarID.at(entry));
+    return layerID;
+}
+//-------------------------------------------------------------------
+const short DmpEvtMCBgo::GetBarID(short entry){
+    short barID = DmpBgoBase::GetBarID(fGlobalBarID.at(entry));
+    return barID;
+}
+//-------------------------------------------------------------------
+void DmpEvtMCBgo::Clear(){
 
+    fGlobalBarID.clear();
+    fEnergy.clear();
+    fPosX.clear();
+    fPosY.clear();
+    fPosZ.clear();
+
+}

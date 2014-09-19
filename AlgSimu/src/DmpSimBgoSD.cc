@@ -12,6 +12,7 @@
 #include "DmpSimBgoSD.h"
 #include "DmpEvtMCBgo.h"
 #include "DmpDataBuffer.h"
+#include "DmpBgoBase.h"
 
 //-------------------------------------------------------------------
 DmpSimBgoSD::DmpSimBgoSD()
@@ -21,9 +22,12 @@ DmpSimBgoSD::DmpSimBgoSD()
 {
         GetMipPar();
         GetAttPar();
+  for (int i=0;i<616;i++)
+  RanGaus[i]=new TRandom();
   fEvtMCBgo = new DmpEvtMCBgo();
 // *  TODO:  check Register status
   gDataBuffer->RegisterObject("Event/MCTruth/Bgo",fEvtMCBgo,"DmpEvtMCBgo");
+  fEvtFdigiBgo = new DmpEvtFdigiBgo();
   gDataBuffer->RegisterObject("Event/MCTruth/BgoFdigi",fEvtFdigiBgo,"DmpEvtFdigiBgo");
 }
 
@@ -31,31 +35,46 @@ DmpSimBgoSD::DmpSimBgoSD()
 DmpSimBgoSD::~DmpSimBgoSD(){
   delete fEvtMCBgo;
   delete fEvtFdigiBgo;
+  for (int i=0;i<616;i++)
+	  delete  RanGaus[i];
 }
 
 //-------------------------------------------------------------------
 #include <boost/lexical_cast.hpp>
 G4bool DmpSimBgoSD::ProcessHits(G4Step *aStep,G4TouchableHistory*){
+std::cout<<"1111111111111111"<<std::endl;
   G4TouchableHistory *theTouchable = (G4TouchableHistory*)(aStep->GetPreStepPoint()->GetTouchable());
   std::string barName = theTouchable->GetVolume(1)->GetName();
+std::cout<<"2222222222222222"<<std::endl;
   barName.assign(barName.end()-4,barName.end());        // get ID
   short barID = boost::lexical_cast<int>(barName);
+  short GlobalID = DmpBgoBase::ConstructGlobalBarID(barID/100,barID%100);
 
+std::cout<<"3333333333333333"<<std::endl;
   G4ThreeVector position = aStep->GetPreStepPoint()->GetPosition();
-  fEvtMCBgo->AddG4Hit(barID,aStep->GetTotalEnergyDeposit()/MeV,position.x()/mm,position.y()/mm,position.z()/mm);
+std::cout<<"4444444444444444"<<std::endl;
+  fEvtMCBgo->AddG4Hit(GlobalID,aStep->GetTotalEnergyDeposit()/MeV,position.x()/mm,position.y()/mm,position.z()/mm);
+std::cout<<"5555555555555555"<<std::endl;
   Eny2ADC(barID,aStep->GetTotalEnergyDeposit()/MeV,position.x()/mm,position.y()/mm);
+std::cout<<"6666666666666666"<<std::endl;
   return true;
 }
 
 //-------------------------------------------------------------------
 void DmpSimBgoSD::Initialize(G4HCofThisEvent*){
 	memset(TotalE,0,sizeof(TotalE));
+std::cout<<"size of event:"<<fEvtFdigiBgo->fGlobalPmtID.size()<<std::endl;
+	fEvtFdigiBgo->fGlobalPmtID.clear();
+	fEvtFdigiBgo->fADC.clear();
+std::cout<<"0000000000000000"<<std::endl;
 }
 
 //-------------------------------------------------------------------
 void DmpSimBgoSD::EndOfEvent(G4HCofThisEvent* HCE){
 //sampling & save
+std::cout<<"7777777777777777"<<std::endl;
 Sampling();
+std::cout<<"8888888888888888"<<std::endl;
 }
 
   //Get Attenuation coefficients 
@@ -115,12 +134,9 @@ void DmpSimBgoSD::Eny2ADC(const short &id, const double &e, const double &x,cons
   double AttCoe[2];  //AttPar[][0]=2/lambda; lambda :cm Dis mm;
   AttCoe[0]=1/TMath::Exp(AttPar[iGbar][0]*Dis[0]/2/10);
   AttCoe[1]=1/TMath::Exp(AttPar[iGbar][0]*Dis[1]/2/10);
-  double MipCov[2];
-  MipCov[0]=MipPar[iGpmt[0]][1]*TMath::Exp(AttPar[iGbar][0]*30/2)/22.5;   //non-att normalized ADC counts/MeV;
-  MipCov[1]=MipPar[iGpmt[1]][1]*TMath::Exp(AttPar[iGbar][0]*30/2)/22.5;   //non-att normalized ADC counts/MeV;
   double AttHit[2];
-  AttHit[0]=e*AttCoe[0]*MipCov[0];
-  AttHit[1]=e*AttCoe[1]*MipCov[1];
+  AttHit[0]=e*AttCoe[0];
+  AttHit[1]=e*AttCoe[1];
   TotalE[iGpmt[0]]+=AttHit[0];
   TotalE[iGpmt[1]]+=AttHit[1];
 }
@@ -131,31 +147,23 @@ void DmpSimBgoSD::Eny2ADC(const short &id, const double &e, const double &x,cons
       for(int bar=0;bar<22;bar++){
         short iGbar=layer*22+bar;
         short iGpmt[2]={layer*2*22+bar,(layer*2+1)*22+bar};
-        if(TotalE[iGpmt[0]]!=0){
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
+        if(TotalE[iGpmt[0]]>0){
 	  std::cout<<iGpmt[0]<<std::endl;
 	  std::cout<<TotalE[iGpmt[0]]<<std::endl;
 	  std::cout<<iGpmt[1]<<std::endl;
 	  std::cout<<TotalE[iGpmt[1]]<<std::endl;
-          double Mean[2]={TotalE[iGpmt[0]],TotalE[iGpmt[1]]};
+          double MipCov[2];
+          MipCov[0]=MipPar[iGpmt[0]][1]*TMath::Exp(AttPar[iGbar][0]*30/2)/22.5;   //non-att normalized ADC counts/MeV;
+          MipCov[1]=MipPar[iGpmt[1]][1]*TMath::Exp(AttPar[iGbar][0]*30/2)/22.5;   //non-att normalized ADC counts/MeV;
+          double Mean[2]={TotalE[iGpmt[0]]*MipCov[0],TotalE[iGpmt[1]]*MipCov[1]};
           double Sigma[2]={MipPar[iGpmt[0]][3]*TMath::Sqrt(Mean[0]/MipPar[iGpmt[0]][1]),MipPar[iGpmt[1]][3]*TMath::Sqrt(Mean[1]/MipPar[iGpmt[1]][1])};
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
 	  
-          TRandom *s0=new TRandom();
-          TRandom *s1=new TRandom();
+        //  TRandom *s0=new TRandom();
+        //  TRandom *s1=new TRandom();
 	  fEvtFdigiBgo->fGlobalPmtID.push_back(iGpmt[0]);
-          fEvtFdigiBgo->fADC.push_back((short)(s0->Gaus(Mean[0],Sigma[0])));
+          fEvtFdigiBgo->fADC.push_back((short)(RanGaus[iGpmt[0]]->Gaus(Mean[0],Sigma[0])));
 	  fEvtFdigiBgo->fGlobalPmtID.push_back(iGpmt[1]);
-          fEvtFdigiBgo->fADC.push_back((short)(s1->Gaus(Mean[1],Sigma[1])));
-          delete s0;
-          delete s1;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
-	  std::cout<<"~~~~~~~~~~~~~~"<<std::endl;
+          fEvtFdigiBgo->fADC.push_back((short)(RanGaus[iGpmt[1]]->Gaus(Mean[1],Sigma[1])));
         }
       }
     }

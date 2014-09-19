@@ -21,10 +21,9 @@ public:
 
   void Reset();
   const short nHits() const {return fGlobalPmtID.size();}
-  const short GetBar(short Gpmt) const {return Gpmt%22};
-  const short GetSide(short Gpmt) const{return ((short)(Gpmt/22))%2}
-  const short GetLayer(short Gpmt) const{return (short)(Gpmt/22/2)}
-  const GetGpmt(short Layer,short Side,short Bar) const {return (Layer*2+Side)*22+Bar}
+  const short GetBar(short Gpmt) const {return Gpmt%22;}
+  const short GetSide(short Gpmt) const{return ((short)(Gpmt/22))%2;}
+  const short GetLayer(short Gpmt) const{return (short)(Gpmt/22/2);}
    
   // void AddFdigiHits(short &id, double &e, double &x,double &y, double &z,double &adc);
 
