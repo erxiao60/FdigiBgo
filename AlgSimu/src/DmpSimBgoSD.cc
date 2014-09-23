@@ -10,7 +10,6 @@
 #include "G4TouchableHistory.hh"
 
 #include "DmpSimBgoSD.h"
-#include "DmpEvtMCBgo.h"
 #include "DmpDataBuffer.h"
 #include "DmpBgoBase.h"
 
@@ -33,7 +32,7 @@ DmpSimBgoSD::DmpSimBgoSD()
 
 //-------------------------------------------------------------------
 DmpSimBgoSD::~DmpSimBgoSD(){
-  delete fEvtMCBgo;
+//  delete fEvtMCBgo;
   delete fEvtFdigiBgo;
   for (int i=0;i<616;i++)
 	  delete  RanGaus[i];
@@ -42,52 +41,45 @@ DmpSimBgoSD::~DmpSimBgoSD(){
 //-------------------------------------------------------------------
 #include <boost/lexical_cast.hpp>
 G4bool DmpSimBgoSD::ProcessHits(G4Step *aStep,G4TouchableHistory*){
-std::cout<<"1111111111111111"<<std::endl;
   G4TouchableHistory *theTouchable = (G4TouchableHistory*)(aStep->GetPreStepPoint()->GetTouchable());
   std::string barName = theTouchable->GetVolume(1)->GetName();
-std::cout<<"2222222222222222"<<std::endl;
   barName.assign(barName.end()-4,barName.end());        // get ID
   short barID = boost::lexical_cast<int>(barName);
   short GlobalID = DmpBgoBase::ConstructGlobalBarID(barID/100,barID%100);
 
-std::cout<<"3333333333333333"<<std::endl;
   G4ThreeVector position = aStep->GetPreStepPoint()->GetPosition();
-std::cout<<"4444444444444444"<<std::endl;
   fEvtMCBgo->AddG4Hit(GlobalID,aStep->GetTotalEnergyDeposit()/MeV,position.x()/mm,position.y()/mm,position.z()/mm);
-std::cout<<"5555555555555555"<<std::endl;
   Eny2ADC(barID,aStep->GetTotalEnergyDeposit()/MeV,position.x()/mm,position.y()/mm);
-std::cout<<"6666666666666666"<<std::endl;
   return true;
 }
 
 //-------------------------------------------------------------------
 void DmpSimBgoSD::Initialize(G4HCofThisEvent*){
+	fEvtMCBgo->Clear();
+        fEvtFdigiBgo->Clear();
 	memset(TotalE,0,sizeof(TotalE));
 std::cout<<"size of event:"<<fEvtFdigiBgo->fGlobalPmtID.size()<<std::endl;
 	fEvtFdigiBgo->fGlobalPmtID.clear();
 	fEvtFdigiBgo->fADC.clear();
-std::cout<<"0000000000000000"<<std::endl;
 }
 
 //-------------------------------------------------------------------
 void DmpSimBgoSD::EndOfEvent(G4HCofThisEvent* HCE){
 //sampling & save
-std::cout<<"7777777777777777"<<std::endl;
 Sampling();
-std::cout<<"8888888888888888"<<std::endl;
 }
 
   //Get Attenuation coefficients 
 void DmpSimBgoSD::GetAttPar(){
   ifstream Apar;
-  Apar.open("/home/zhzhy/Dampe/Calibration/Attenuation/AttPar");
-  if(!Apar.good()){
+  Apar.open("../Dampe/Calibration/Attenuation/AttPar");
+   if(!Apar.good()){
     std::cout<<"Can not open Att Par file!"<<std::endl;
     exit(1);
   } 
   int nGbar=14*22;
-  for(int i=0; i<nGbar;i++){
-    for(int j=0 ;j<2;j++){ 
+   for(int i=0; i<nGbar;i++){
+     for(int j=0 ;j<2;j++){ 
       Apar>>AttPar[i][j]; 
       std::cout<<AttPar[i][j]<<"\t";
     }
@@ -98,11 +90,11 @@ void DmpSimBgoSD::GetAttPar(){
   //Get MIPs parameters
 void DmpSimBgoSD::GetMipPar(){
   ifstream Mpar;
-  Mpar.open("/home/zhzhy/Dampe/Calibration/MIPs/MIPsPar");
+  Mpar.open("../Dampe/Calibration/MIPs/MIPsPar");
   if(!Mpar.good()){
     std::cout<<"Can not open MIPs Par file!"<<std::endl;
     exit(1);
-  } 
+  }  
   int nGpmt=14*2*22;
   for(int i=0;i<nGpmt;i++){
     for(int j=0;j<4;j++){
@@ -143,8 +135,8 @@ void DmpSimBgoSD::Eny2ADC(const short &id, const double &e, const double &x,cons
   //Sampling with calibrated paramneters
   void DmpSimBgoSD::Sampling(){
     //Get iGpmt, iGbar
-    for(int layer=0;layer<14;layer++){
-      for(int bar=0;bar<22;bar++){
+    for(short layer=0;layer<14;layer++){
+      for(short bar=0;bar<22;bar++){
         short iGbar=layer*22+bar;
         short iGpmt[2]={layer*2*22+bar,(layer*2+1)*22+bar};
         if(TotalE[iGpmt[0]]>0){

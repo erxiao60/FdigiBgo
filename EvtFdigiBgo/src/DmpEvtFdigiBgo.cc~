@@ -6,7 +6,6 @@
 */
 
 #include "DmpEvtFdigiBgo.h"
-#include "iostream.h"
 ClassImp(DmpEvtFdigiBgo)
 
 DmpEvtFdigiBgo::DmpEvtFdigiBgo()

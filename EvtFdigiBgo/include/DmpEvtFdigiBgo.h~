@@ -32,7 +32,6 @@ public:
   std::vector <short>     fGlobalPmtID;   // unique sensitive detector(minimum detector unit) ID.Pmt End of Bgo bar. fGlobalPmtID =  (layer*2+side)*22+bar;
   std::vector <short>    fADC;        // unit ADC
   
-private:
   ClassDef(DmpEvtFdigiBgo,1)
 
 };

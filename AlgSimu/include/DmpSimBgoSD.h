@@ -1,7 +1,8 @@
-/*
+/* 
  *  $Id: DmpSimBgoSD.h, 2014-05-22 17:04:23 DAMPE $
  *  Author(s):
  *    Chi WANG (chiwang@mail.ustc.edu.cn) 03/03/2014
+ *    A fast digitization was added by yong 18/09/2014
 */
 
 #ifndef DmpSimBgoSD_H
@@ -9,14 +10,16 @@
 
 #include "G4VSensitiveDetector.hh"
 #include "DmpEvtFdigiBgo.h"
+#include "DmpEvtMCBgo.h"
 #include "fstream"
 #include "TMath.h"
 #include "TRandom.h"
 #include "iostream"
 class DmpEvtMCBgo;
+class DmpEvtFdigiBgo;
 
 class DmpSimBgoSD : public G4VSensitiveDetector{
-/*
+/* 
  *  DmpSimBgoSD
  *
  */
